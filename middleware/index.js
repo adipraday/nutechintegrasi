@@ -1,9 +1,6 @@
-// middleware/index.js
-
 import jwt from "jsonwebtoken";
 const secretKey = process.env.JWT_SECRET || "your_jwt_secret_key"; // Ganti dengan secret key yang sesuai
 
-// Middleware untuk memvalidasi JWT
 export const validateToken = (req, res, next) => {
   // Ambil token dari header Authorization
   const token = req.headers["authorization"];
@@ -20,7 +17,7 @@ export const validateToken = (req, res, next) => {
       return res.status(401).json({
         status: 108,
         message: "Invalid or expired token",
-        error: err.message,
+        data: null,
       });
     }
 

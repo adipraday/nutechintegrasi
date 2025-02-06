@@ -15,6 +15,7 @@ import {
 } from "../controllers/Transaction.js";
 import { validateToken } from "../middleware/index.js";
 import upload from "../config/MulterConfig.js";
+import multer from "multer";
 
 const router = express.Router();
 
@@ -26,7 +27,26 @@ router.put("/profile/update", validateToken, updateProfile);
 router.put(
   "/profile/image",
   validateToken,
-  upload.single("profile_image"),
+  (req, res, next) => {
+    upload.single("profile_image")(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({
+            status: 103,
+            message: "Batas ukuran file hanya 5 mb",
+            data: null,
+          });
+        }
+      } else if (err) {
+        return res.status(400).json({
+          status: 102,
+          message: "Format Image tidak sesuai",
+          data: null,
+        });
+      }
+      next();
+    });
+  },
   uploadProfileImage
 );
 

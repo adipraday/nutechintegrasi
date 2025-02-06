@@ -1,12 +1,11 @@
-import db from "../config/Database.js"; // Adjust the import path accordingly
-import moment from "moment"; // To generate the current date for invoice
+import db from "../config/Database.js";
+import moment from "moment";
 
-// Cek balances controller
+// Controller untuk cek balances
 export const getBalance = async (req, res) => {
   try {
-    const { email } = req.user; // Get the email from the decoded JWT token
+    const { email } = req.user;
 
-    // Query the database to get the user ID based on email
     const [userRows] = await db.query("SELECT id FROM users WHERE email = ?", [
       email,
     ]);
@@ -21,7 +20,6 @@ export const getBalance = async (req, res) => {
 
     const userId = userRows[0].id;
 
-    // Query the database to get the balance for the user
     const [balanceRows] = await db.query(
       "SELECT balance FROM balances WHERE user_id = ?",
       [userId]
@@ -35,7 +33,6 @@ export const getBalance = async (req, res) => {
       });
     }
 
-    // Return the balance
     return res.status(200).json({
       status: 0,
       message: "Get Balance Berhasil",
@@ -53,13 +50,12 @@ export const getBalance = async (req, res) => {
   }
 };
 
-// Controller to top-up balance
+// Controller untuk top-up balance
 export const topUpBalance = async (req, res) => {
   try {
-    const { top_up_amount } = req.body; // Get the top-up amount from the request body
-    const { email } = req.user; // Get the email from the decoded JWT token
+    const { top_up_amount } = req.body;
+    const { email } = req.user;
 
-    // Validate the top-up amount
     if (isNaN(top_up_amount) || top_up_amount <= 0) {
       return res.status(400).json({
         status: 102,
@@ -69,7 +65,6 @@ export const topUpBalance = async (req, res) => {
       });
     }
 
-    // Query the database to get the user ID based on email
     const [userRows] = await db.query("SELECT id FROM users WHERE email = ?", [
       email,
     ]);
@@ -84,7 +79,6 @@ export const topUpBalance = async (req, res) => {
 
     const userId = userRows[0].id;
 
-    // Query the database to get the current balance for the user from the balances table
     const [balanceRows] = await db.query(
       "SELECT balance FROM balances WHERE user_id = ?",
       [userId]
@@ -93,7 +87,6 @@ export const topUpBalance = async (req, res) => {
     let currentBalance = 0;
 
     if (balanceRows.length === 0) {
-      // If no balance record exists, create a new balance record with the top-up amount
       await db.query("INSERT INTO balances (user_id, balance) VALUES (?, ?)", [
         userId,
         top_up_amount,
@@ -103,25 +96,20 @@ export const topUpBalance = async (req, res) => {
       currentBalance = balanceRows[0].balance;
     }
 
-    // Calculate the new balance
     const newBalance = currentBalance + top_up_amount;
 
-    // Update the user's balance in the balances table
     await db.query("UPDATE balances SET balance = ? WHERE user_id = ?", [
       newBalance,
       userId,
     ]);
 
-    // Generate a unique invoice number (e.g., using timestamp and user ID)
     const invoiceNumber = `TOPUP-${userId}-${Date.now()}`;
 
-    // Log the transaction in the transactions table (using "TOPUP" as transaction type)
     await db.query(
       "INSERT INTO transactions (user_id, service_code, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?, ?)",
       [userId, "TOPUP", "TOPUP", top_up_amount, invoiceNumber]
     );
 
-    // Return the new balance
     return res.status(200).json({
       status: 0,
       message: "Top Up Balance berhasil",
@@ -139,13 +127,12 @@ export const topUpBalance = async (req, res) => {
   }
 };
 
-// Controller to process a transaction
+// Controller untuk proses transaction
 export const processTransaction = async (req, res) => {
   try {
-    const { service_code } = req.body; // Get the service code from the request body
-    const { email } = req.user; // Get the email from the decoded JWT token
+    const { service_code } = req.body;
+    const { email } = req.user;
 
-    // Check if the service exists in the database
     const [serviceRows] = await db.query(
       "SELECT service_code, service_name, service_tariff FROM services WHERE service_code = ?",
       [service_code]
@@ -162,7 +149,6 @@ export const processTransaction = async (req, res) => {
     const service = serviceRows[0];
     const { service_name, service_tariff } = service;
 
-    // Query the database to get the current balance for the user from the balances table
     const [balanceRows] = await db.query(
       "SELECT balance FROM balances WHERE user_id = (SELECT id FROM users WHERE email = ?)",
       [email]
@@ -178,7 +164,6 @@ export const processTransaction = async (req, res) => {
 
     const currentBalance = balanceRows[0].balance;
 
-    // Check if the user has enough balance
     if (currentBalance < service_tariff) {
       return res.status(400).json({
         status: 103,
@@ -187,16 +172,13 @@ export const processTransaction = async (req, res) => {
       });
     }
 
-    // Deduct the service tariff from the user's balance
     const newBalance = currentBalance - service_tariff;
 
-    // Update the user's balance in the balances table
     await db.query(
       "UPDATE balances SET balance = ? WHERE user_id = (SELECT id FROM users WHERE email = ?)",
       [newBalance, email]
     );
 
-    // Generate a unique invoice number
     const invoiceNumber = `INV${moment().format("DDMMYYYY")}-${Math.floor(
       Math.random() * 1000
     )}`;
@@ -204,13 +186,11 @@ export const processTransaction = async (req, res) => {
     const transactionType = "PAYMENT";
     const createdOn = moment().toISOString();
 
-    // Get user ID based on email for the transaction log
     const [userRows] = await db.query("SELECT id FROM users WHERE email = ?", [
       email,
     ]);
     const userId = userRows[0].id;
 
-    // Log the transaction in the transactions table
     await db.query(
       "INSERT INTO transactions (user_id, service_code, transaction_type, total_amount, invoice_number, created_on) VALUES (?, ?, ?, ?, ?, ?)",
       [
@@ -223,7 +203,6 @@ export const processTransaction = async (req, res) => {
       ]
     );
 
-    // Return the transaction details including invoice number
     return res.status(200).json({
       status: 0,
       message: "Transaksi berhasil",
@@ -246,17 +225,15 @@ export const processTransaction = async (req, res) => {
   }
 };
 
-// Controller to get transaction history
+// Controller untuk transaction history
 export const getTransactionHistory = async (req, res) => {
   try {
-    const { email } = req.user; // Get the email from the decoded JWT token
-    const { limit, offset } = req.query; // Get limit and offset from query params
+    const { email } = req.user;
+    const { limit, offset } = req.query;
 
-    // Set default values for limit and offset
-    const limitValue = limit ? parseInt(limit) : null; // If no limit is provided, fetch all records
-    const offsetValue = offset ? parseInt(offset) : 0; // Default to 0 if offset is not provided
+    const limitValue = limit ? parseInt(limit) : null;
+    const offsetValue = offset ? parseInt(offset) : 0;
 
-    // Get user ID based on email
     const [userRows] = await db.query("SELECT id FROM users WHERE email = ?", [
       email,
     ]);
@@ -271,7 +248,6 @@ export const getTransactionHistory = async (req, res) => {
 
     const userId = userRows[0].id;
 
-    // Fetch transaction history for the user
     let query = `
         SELECT 
           invoice_number, 
@@ -284,7 +260,6 @@ export const getTransactionHistory = async (req, res) => {
         ORDER BY created_on DESC
       `;
 
-    // Add limit and offset if limit is provided
     if (limitValue !== null) {
       query += ` LIMIT ? OFFSET ?`;
     }
@@ -293,13 +268,12 @@ export const getTransactionHistory = async (req, res) => {
       limitValue !== null ? [userId, limitValue, offsetValue] : [userId];
     const [transactions] = await db.query(query, queryParams);
 
-    // Return the transaction history
     return res.status(200).json({
       status: 0,
       message: "Get History Berhasil",
       data: {
         offset: offsetValue,
-        limit: limitValue || "all", // Show 'all' if no limit is applied
+        limit: limitValue || "all",
         records: transactions,
       },
     });

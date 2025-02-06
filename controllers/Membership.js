@@ -1,11 +1,9 @@
 import argon2 from "argon2";
-import db from "../config/Database.js"; // Import the DB connection from your config file
+import db from "../config/Database.js";
 import jwt from "jsonwebtoken";
-import upload from "../config/MulterConfig.js";
 import { body, validationResult } from "express-validator";
-import multer from "multer";
 
-const secretKey = process.env.JWT_SECRET || "your_jwt_secret_key"; // Set your JWT secret
+const secretKey = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 export const registerUser = async (req, res) => {
   const { email, first_name, last_name, password } = req.body;
@@ -53,16 +51,13 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await argon2.hash(password, 10);
 
-    // Insert pengguna baru ke database
     await db.execute(
       "INSERT INTO users (email, first_name, last_name, password) VALUES (?, ?, ?, ?)",
       [email, first_name, last_name, hashedPassword]
     );
 
-    // Response berhasil
     return res.status(201).json({
       status: 0,
       message: "Registrasi berhasil silahkan login",
@@ -79,7 +74,6 @@ export const registerUser = async (req, res) => {
 };
 
 export const loginUser = async (req, res) => {
-  // Validasi input
   await body("email")
     .isEmail()
     .withMessage("Paramter email tidak sesuai format")
@@ -93,7 +87,7 @@ export const loginUser = async (req, res) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       status: 102,
-      message: errors.array()[0].msg, // Ambil pesan error pertama
+      message: errors.array()[0].msg,
       data: null,
     });
   }
@@ -101,7 +95,6 @@ export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Cek apakah user dengan email tersebut ada di database
     const [rows] = await db.execute("SELECT * FROM users WHERE email = ?", [
       email,
     ]);
@@ -116,7 +109,6 @@ export const loginUser = async (req, res) => {
 
     const user = rows[0];
 
-    // Cek apakah password cocok menggunakan argon2.verify
     const isMatch = await argon2.verify(user.password, password);
     if (!isMatch) {
       return res.status(401).json({
@@ -126,7 +118,6 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Generate token JWT
     const payload = { email: user.email };
     const token = jwt.sign(payload, secretKey, { expiresIn: "12h" });
 
@@ -145,13 +136,11 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Profile Controller
+// Controller untuk get profile
 export const getProfile = async (req, res) => {
   try {
-    // Extract email from JWT payload (decoded by middleware)
     const userEmail = req.user.email;
 
-    // Fetch user data from the database using the email from JWT
     const [rows] = await db.execute(
       "SELECT email, first_name, last_name, profile_image FROM users WHERE email = ?",
       [userEmail]
@@ -167,7 +156,6 @@ export const getProfile = async (req, res) => {
 
     const user = rows[0];
 
-    // Respond with user data
     return res.status(200).json({
       status: 0,
       message: "Sukses",
@@ -175,13 +163,12 @@ export const getProfile = async (req, res) => {
         email: user.email,
         first_name: user.first_name,
         last_name: user.last_name,
-        profile_image: user.profile_image || null, // Provide null if no profile image
+        profile_image: user.profile_image || null,
       },
     });
   } catch (error) {
     console.error("Profile fetching error:", error);
 
-    // Handle unexpected errors
     return res.status(500).json({
       status: 500,
       message: "Internal server error",
@@ -190,12 +177,11 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// Profile Update Controller
+// Controller untuk profile update
 export const updateProfile = async (req, res) => {
-  const { first_name, last_name } = req.body; // Ambil data dari request body
-  const userEmail = req.user.email; // Email user dari JWT payload (didecode oleh middleware)
+  const { first_name, last_name } = req.body;
+  const userEmail = req.user.email;
 
-  // Validasi input
   if (!first_name || !last_name) {
     return res.status(400).json({
       status: 400,
@@ -205,13 +191,11 @@ export const updateProfile = async (req, res) => {
   }
 
   try {
-    // Update profil pengguna di database
     const [result] = await db.execute(
       "UPDATE users SET first_name = ?, last_name = ? WHERE email = ?",
       [first_name, last_name, userEmail]
     );
 
-    // Periksa apakah ada baris yang diperbarui
     if (result.affectedRows === 0) {
       return res.status(404).json({
         status: 404,
@@ -220,7 +204,6 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    // Ambil data pengguna yang telah diperbarui untuk response
     const [updatedUser] = await db.execute(
       "SELECT email, first_name, last_name, profile_image FROM users WHERE email = ?",
       [userEmail]
@@ -235,7 +218,7 @@ export const updateProfile = async (req, res) => {
         email: user.email,
         first_name: user.first_name,
         last_name: user.last_name,
-        profile_image: user.profile_image || null, // Default ke null jika profile_image tidak ada
+        profile_image: user.profile_image || null,
       },
     });
   } catch (error) {
@@ -248,7 +231,7 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-// Profile Image Upload Controller
+// Controller untuk profile image upload
 export const uploadProfileImage = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({
@@ -258,15 +241,13 @@ export const uploadProfileImage = async (req, res) => {
     });
   }
 
-  const image = req.file.path; // Access the file path after it has been uploaded
-  const userEmail = req.user.email; // Extract the email from the JWT payload
+  const image = req.file.path;
+  const userEmail = req.user.email;
 
   try {
-    // Get the user based on the email from JWT
-    const [user] = await db.execute(
-      "SELECT id FROM users WHERE email = ?",
-      [userEmail] // Get the user by email from JWT
-    );
+    const [user] = await db.execute("SELECT * FROM users WHERE email = ?", [
+      userEmail,
+    ]);
 
     if (!user) {
       return res.status(404).json({
@@ -276,18 +257,21 @@ export const uploadProfileImage = async (req, res) => {
       });
     }
 
-    // Update the user's profile_image field with the filename
-    await db.execute(
-      "UPDATE users SET profile_image = ? WHERE email = ?",
-      [image, userEmail] // Use the image path and email to update
-    );
+    await db.execute("UPDATE users SET profile_image = ? WHERE email = ?", [
+      image,
+      userEmail,
+    ]);
+
+    const user1 = user[0];
 
     return res.status(200).json({
       status: 0,
       message: "Update Profile Image berhasil",
       data: {
-        email: userEmail, // Send the user's email
-        profile_image: image, // Send the file path
+        email: userEmail,
+        first_name: user1.first_name,
+        last_name: user1.last_name,
+        profile_image: image,
       },
     });
   } catch (error) {

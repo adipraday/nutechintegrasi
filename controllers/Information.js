@@ -1,8 +1,8 @@
 import db from "../config/Database.js"; // Adjust the import path according to your structure
 
+// Controller untuk get banners
 export const getBanner = async (req, res) => {
   try {
-    // Query the database to get all banner details
     const [rows] = await db.query(
       "SELECT * FROM banners ORDER BY created_at DESC"
     );
@@ -15,17 +15,16 @@ export const getBanner = async (req, res) => {
       });
     }
 
-    // Map the banner data to match the response format
     const banners = rows.map((row) => ({
-      banner_name: row.banner_name, // Adjust field names as per your table structure
-      banner_image: `https://yourdomain.com/${row.banner_image}`, // Assuming the image is stored as a relative path
+      banner_name: row.banner_name,
+      banner_image: `https://yourdomain.com/${row.banner_image}`,
       description: row.description,
     }));
 
     return res.status(200).json({
-      status: 0, // Success status code as per documentation
-      message: "Sukses", // Success message as per documentation
-      data: banners, // Return the array of banners
+      status: 0,
+      message: "Sukses",
+      data: banners,
     });
   } catch (err) {
     console.error(err);
@@ -37,10 +36,9 @@ export const getBanner = async (req, res) => {
   }
 };
 
-// Controller to get all services
+// Controller untuk get semua / all services
 export const getServices = async (req, res) => {
   try {
-    // Query the database to get all services
     const [rows] = await db.query(
       "SELECT service_code, service_name, service_icon, service_tariff FROM services"
     );
@@ -53,11 +51,10 @@ export const getServices = async (req, res) => {
       });
     }
 
-    // Return the services data
     return res.status(200).json({
       status: 0,
       message: "Sukses",
-      data: rows, // Return the list of services
+      data: rows,
     });
   } catch (err) {
     console.error(err);

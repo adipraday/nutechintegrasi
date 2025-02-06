@@ -4,7 +4,7 @@ import db from "./config/Database.js";
 import cors from "cors";
 import router from "./routes/index.js";
 
-dotenv.config(); // Load environment variables from .env file
+dotenv.config();
 
 const app = express();
 const PORT = process.env;
@@ -14,7 +14,7 @@ const connectDB = async () => {
     // Test the database connection
     const [rows] = await db.execute("SELECT 1 + 1 AS solution");
     console.log("Database Connected...");
-    console.log("Query result:", rows); // Should output the result of the test query
+    console.log("Query result:", rows);
   } catch (error) {
     console.error("Database connection error:", error);
   }
@@ -39,7 +39,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(router);
 
-// Define a route for the root path
+// Default route
 app.get("/", (req, res) => {
   res.send("Nutech - NodeJS Rest API");
 });

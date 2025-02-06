@@ -49,19 +49,4 @@ CREATE TABLE balances (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Table untuk menyimpan token JWT yang terkait dengan pengguna
-CREATE TABLE tokens (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    token VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
 
--- Table untuk menyimpan data profile image (opsional jika menggunakan file sistem)
-CREATE TABLE profile_images (
-    user_id INT PRIMARY KEY,
-    image_url VARCHAR(255) NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
