@@ -10,9 +10,9 @@ const connectionDev = {
 const connectionProd = {
   host: "mysql",
   port: 3306,
-  user: "karitiang",
-  password: "@KotoMalintang",
-  database: "db_kujang",
+  user: "root",
+  password: "@kOTOmALINTANG2024",
+  database: "payment_systems",
 };
 
 // Select koneksi database berdasarkan environment
