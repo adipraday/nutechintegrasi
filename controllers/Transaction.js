@@ -184,7 +184,7 @@ export const processTransaction = async (req, res) => {
     )}`;
 
     const transactionType = "PAYMENT";
-    const createdOn = moment().toISOString();
+    const createdOn = moment().format("YYYY-MM-DD HH:mm:ss");
 
     const [userRows] = await db.query("SELECT id FROM users WHERE email = ?", [
       email,
