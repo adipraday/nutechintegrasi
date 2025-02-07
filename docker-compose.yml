@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: /home/adiprada/nutechintegrasi
+    container_name: nutech-backend
+    ports:
+      - "5010:5010"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=@kOTOmALINTANG2024
+      - DB_NAME=payment_systems
+    depends_on:
+      - mysql
+    networks:
+      - nutech-network
+
+  mysql:
+    image: adiprada16/kujangbackend:mysql
+    container_name: nutech-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=@kOTOmALINTANG2024
+      - MYSQL_DATABASE=payment_systems
+    ports:
+      - "3307:3307"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - nutech-network
+
+volumes:
+  mysql-data:
+
+networks:
+  nutech-network:
+    external: true
